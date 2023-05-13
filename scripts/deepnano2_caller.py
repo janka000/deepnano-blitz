@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--directory', type=str, nargs='*', help='One or more directories with reads')
     parser.add_argument('--reads', type=str, nargs='*', help='One or more read files')
-    parser.add_argument("--output", type=str, required=True, help="Output FASTA file name")
+    parser.add_argument("--output", type=str, required=True, help="Output directory")
     parser.add_argument("--threads", type=int, default=1, help="Number of threads for basecalling, default 1")
     parser.add_argument("--weights", type=str, default=None, help="Path to network weights, only used for custom weights")
     parser.add_argument("--network-type", choices=["48", "56", "64", "80", "96", "256"], default="48", help="Size of network. Default 48")
@@ -114,20 +114,18 @@ if __name__ == '__main__':
 
     caller = deepnano2.Caller(args.network_type, weights, beam_size, beam_cut_threshold)
 
-
-    if args.gzip_output:
-        fout = gzip.open(args.output, "wt")
-    else:
-        fout = open(args.output, "w")
-
     if args.threads <= 1:
         done = 0
         for fn in files:
+            head, tail = os.path.split(fn)
+            fname = tail.split(".")[0]
             start = datetime.datetime.now()
+            fout = open(os.path.join(args.output,fname+"."+args.output_format), "w")
             for read_id, run_id, read_num, channel_num, start_time, basecall, qual in call_file(fn):
                 write_output(read_id, run_id, read_num, channel_num, start_time, basecall, qual, fout, args.output_format) 
                 done += 1
                 print("done %d/%d" % (done, len(files)), read_id, datetime.datetime.now() - start, file=sys.stderr)
+            fout.close()
 
     else:
         pool = Pool(args.threads)
